@@ -10,7 +10,7 @@ categories = ["security"]
 edition = "2018"
 
 [lib]
-name = "opnsense"
+name = "usiem_opnsense"
 path = "src/lib.rs"
 
 [dependencies]
