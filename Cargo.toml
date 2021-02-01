@@ -1,11 +1,11 @@
 [package]
 name = "u-siem-opnsense"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Samuel Garcés <samuel.garces@protonmail.com>"]
 license = "MIT"
-description = "A framework to build custom SIEMs"
+description = "Library to be used to build a custom SIEM with the framework uSIEM"
 repository = "https://github.com/u-siem/u-siem-core"
-keywords = ["SIEM", "security", "logs"]
+keywords = ["SIEM", "security", "logs","opnsense","firewall"]
 categories = ["security"]
 edition = "2018"
 

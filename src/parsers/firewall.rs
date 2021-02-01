@@ -44,7 +44,6 @@ pub fn parse_log(log: SiemLog) -> Result<SiemLog, SiemLog> {
             last_pos = pos + 1;
         }
     }
-    //TODO extraer timestamp syslog y poner los campos correspondientes
 
     let month = match syslog_content.get(1) {
         Some(val) => val,
@@ -76,8 +75,6 @@ pub fn parse_log(log: SiemLog) -> Result<SiemLog, SiemLog> {
         Some(val) => val,
         None => return Err(log),
     };
-    
-
     
     let ip_version = match log_csv.get(8) {
         Some(val) => val,
@@ -122,7 +119,7 @@ pub fn parse_log(log: SiemLog) -> Result<SiemLog, SiemLog> {
     } else {
         return Err(log);
     };
-    let (sport,dport) = if *ip_version == "4" {
+    let (sport,dport, protocol) = if *ip_version == "4" {
         let sport = match log_csv.get(20){
             Some(val) => match val.parse::<u16>(){
                 Ok(val) => val,
@@ -137,7 +134,11 @@ pub fn parse_log(log: SiemLog) -> Result<SiemLog, SiemLog> {
             },
             None => 0
         };
-        (sport,dport)
+        let protocol = match log_csv.get(16) {
+            Some(val) => parse_protocol(val),
+            None => return Err(log)
+        };
+        (sport,dport,protocol)
     }else{
         let sport = match log_csv.get(17){
             Some(val) => match val.parse::<u16>(){
@@ -153,17 +154,18 @@ pub fn parse_log(log: SiemLog) -> Result<SiemLog, SiemLog> {
             },
             None => 0
         };
-        (sport,dport)
+        let protocol = match log_csv.get(12) {
+            Some(val) => parse_protocol(val),
+            None => return Err(log)
+        };
+        (sport,dport,protocol)
     };
     
     let outcome = match log_csv.get(6) {
         Some(val) => outcome_to_enum(val),
         None => return Err(log)
     };
-    let protocol = match log_csv.get(16) {
-        Some(val) => parse_protocol(val),
-        None => return Err(log)
-    };
+    
     //Removing Syslog header
     let mut log = SiemLog::new(log_content.to_string(), log.event_received(), log.origin().clone());
     log.set_event(SiemEvent::Firewall(FirewallEvent {
@@ -205,7 +207,6 @@ pub fn parse_protocol(protocol: &str) -> NetworkProtocol {
     match protocol {
         "tcp" => NetworkProtocol::TCP,
         "udp" => NetworkProtocol::UDP,
-        "ip" => NetworkProtocol::ICMP,
         _ => NetworkProtocol::OTHER(Cow::Owned(protocol.to_uppercase())),
     }
 }
