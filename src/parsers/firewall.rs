@@ -1,10 +1,10 @@
+use chrono::prelude::{DateTime, Datelike, NaiveDateTime, TimeZone, Utc};
+use std::borrow::Cow;
+use usiem::events::field::{SiemField, SiemIp};
 use usiem::events::firewall::{FirewallEvent, FirewallOutcome};
-use usiem::events::field::{SiemIp, SiemField};
 use usiem::events::protocol::NetworkProtocol;
 use usiem::events::{SiemEvent, SiemLog};
 use usiem::utilities::ip_utils::{ipv4_from_str, ipv6_from_str};
-use chrono::prelude::{DateTime, Datelike, NaiveDateTime, TimeZone, Utc};
-use std::borrow::Cow;
 
 pub fn parse_log(log: SiemLog) -> Result<SiemLog, SiemLog> {
     let log_line = log.message();
@@ -75,99 +75,100 @@ pub fn parse_log(log: SiemLog) -> Result<SiemLog, SiemLog> {
         Some(val) => val,
         None => return Err(log),
     };
-    
     let ip_version = match log_csv.get(8) {
         Some(val) => val,
         None => return Err(log),
     };
-    let (s_ip,d_ip) = if *ip_version == "4" {
-        let sip = match log_csv.get(18){
+    let (s_ip, d_ip) = if *ip_version == "4" {
+        let sip = match log_csv.get(18) {
             Some(val) => val,
-            None => return Err(log)
+            None => return Err(log),
         };
-        let dip = match log_csv.get(19){
+        let dip = match log_csv.get(19) {
             Some(val) => val,
-            None => return Err(log)
+            None => return Err(log),
         };
-        let sip = match ipv4_from_str(sip){
+        let sip = match ipv4_from_str(sip) {
             Ok(val) => SiemIp::V4(val),
-            Err(_e) => return Err(log)
+            Err(_e) => return Err(log),
         };
-        let dip = match ipv4_from_str(dip){
+        let dip = match ipv4_from_str(dip) {
             Ok(val) => SiemIp::V4(val),
-            Err(_e) => return Err(log)
+            Err(_e) => return Err(log),
         };
         (sip, dip)
     } else if *ip_version == "6" {
-        let sip = match log_csv.get(15){
+        let sip = match log_csv.get(15) {
             Some(val) => val,
-            None => return Err(log)
+            None => return Err(log),
         };
-        let dip = match log_csv.get(16){
+        let dip = match log_csv.get(16) {
             Some(val) => val,
-            None => return Err(log)
+            None => return Err(log),
         };
-        let sip = match ipv6_from_str(sip){
+        let sip = match ipv6_from_str(sip) {
             Ok(val) => SiemIp::V6(val),
-            Err(_e) => return Err(log)
+            Err(_e) => return Err(log),
         };
-        let dip = match ipv6_from_str(dip){
+        let dip = match ipv6_from_str(dip) {
             Ok(val) => SiemIp::V6(val),
-            Err(_e) => return Err(log)
+            Err(_e) => return Err(log),
         };
         (sip, dip)
     } else {
         return Err(log);
     };
-    let (sport,dport, protocol) = if *ip_version == "4" {
-        let sport = match log_csv.get(20){
-            Some(val) => match val.parse::<u16>(){
+    let (sport, dport, protocol) = if *ip_version == "4" {
+        let sport = match log_csv.get(20) {
+            Some(val) => match val.parse::<u16>() {
                 Ok(val) => val,
-                Err(_) => 0
+                Err(_) => 0,
             },
-            None => 0
+            None => 0,
         };
-        let dport = match log_csv.get(21){
-            Some(val) => match val.parse::<u16>(){
+        let dport = match log_csv.get(21) {
+            Some(val) => match val.parse::<u16>() {
                 Ok(val) => val,
-                Err(_) => 0
+                Err(_) => 0,
             },
-            None => 0
+            None => 0,
         };
         let protocol = match log_csv.get(16) {
             Some(val) => parse_protocol(val),
-            None => return Err(log)
+            None => return Err(log),
         };
-        (sport,dport,protocol)
-    }else{
-        let sport = match log_csv.get(17){
-            Some(val) => match val.parse::<u16>(){
+        (sport, dport, protocol)
+    } else {
+        let sport = match log_csv.get(17) {
+            Some(val) => match val.parse::<u16>() {
                 Ok(val) => val,
-                Err(_) => 0
+                Err(_) => 0,
             },
-            None => 0
+            None => 0,
         };
-        let dport = match log_csv.get(18){
-            Some(val) => match val.parse::<u16>(){
+        let dport = match log_csv.get(18) {
+            Some(val) => match val.parse::<u16>() {
                 Ok(val) => val,
-                Err(_) => 0
+                Err(_) => 0,
             },
-            None => 0
+            None => 0,
         };
         let protocol = match log_csv.get(12) {
             Some(val) => parse_protocol(val),
-            None => return Err(log)
+            None => return Err(log),
         };
-        (sport,dport,protocol)
+        (sport, dport, protocol)
     };
-    
     let outcome = match log_csv.get(6) {
         Some(val) => outcome_to_enum(val),
-        None => return Err(log)
+        None => return Err(log),
     };
-    
     //Removing Syslog header
-    let mut log = SiemLog::new(log_content.to_string(), log.event_received(), log.origin().clone());
+    let mut log = SiemLog::new(
+        log_content.to_string(),
+        log.event_received(),
+        log.origin().clone(),
+    );
     log.set_event(SiemEvent::Firewall(FirewallEvent {
         source_ip: s_ip,
         destination_ip: d_ip,
@@ -179,18 +180,21 @@ pub fn parse_log(log: SiemLog) -> Result<SiemLog, SiemLog> {
         in_bytes: 0,
         out_bytes: 0,
         in_interface: Cow::Owned((*interface).to_owned()),
-        out_interface: Cow::Borrowed("")
+        out_interface: Cow::Borrowed(""),
     }));
     log.set_event_created(event_created);
     log.set_vendor(Cow::Borrowed("OPNSense"));
     log.set_product(Cow::Borrowed("OPNSense"));
     log.set_service(Cow::Borrowed("filterlog"));
     log.set_category(Cow::Borrowed("Firewall"));
-    log.add_field("observer.name", SiemField::Text(Cow::Owned(observer_name.to_string())));
+    log.add_field(
+        "observer.name",
+        SiemField::Text(Cow::Owned(observer_name.to_string())),
+    );
     match ipv4_from_str(observer_name) {
         Ok(ip) => {
             log.add_field("observer.ip", SiemField::IP(SiemIp::V4(ip)));
-        },
+        }
         _ => {}
     };
     return Ok(log);
@@ -219,11 +223,11 @@ pub fn timestamp_to_i64(timestamp: &str) -> i64 {
 
 #[cfg(test)]
 mod filterlog_tests {
-    use usiem::events::field::SiemIp;
-    use usiem::events::{SiemLog,SiemEvent};
-    use usiem::events::firewall::FirewallOutcome;
-    use usiem::utilities::ip_utils::{ipv4_from_str, port_to_u16};
     use super::{parse_log, parse_protocol};
+    use usiem::events::field::SiemIp;
+    use usiem::events::firewall::FirewallOutcome;
+    use usiem::events::{SiemEvent, SiemLog};
+    use usiem::utilities::ip_utils::{ipv4_from_str};
 
     #[test]
     fn parse_logs() {
@@ -240,19 +244,12 @@ mod filterlog_tests {
                     event.destination_ip,
                     SiemIp::V4(ipv4_from_str("8.8.8.8").unwrap())
                 );
-                assert_eq!(
-                    event.source_port,
-                    port_to_u16("5074").expect("Cannot parse")
-                );
-                assert_eq!(
-                    event.destination_port,
-                    port_to_u16("53").expect("Cannot parse")
-                );
+                assert_eq!(event.source_port, 5074);
+                assert_eq!(event.destination_port, 53);
                 assert_eq!(event.network_protocol, parse_protocol("udp"));
                 assert_eq!(event.outcome, FirewallOutcome::ALLOW);
-            },
+            }
             _ => {}
         }
     }
-
 }
